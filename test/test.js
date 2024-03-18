@@ -9,7 +9,7 @@ var https = require('https');
 var fs = require('fs');
 var assert = require('assert');
 
-var helpTextPath = path.join(__dirname, '../lib/help.txt');
+var helpTextPath = path.join(__dirname, '../help.txt');
 var helpText = fs.readFileSync(helpTextPath, {encoding: 'utf8'});
 
 request.Test.prototype.expectJSON = function(json, done) {

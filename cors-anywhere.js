@@ -339,6 +339,10 @@ function getHandler(options, proxy) {
       corsMaxAge: corsAnywhere.corsMaxAge,
     };
 
+    req.url = req.url.replace(/https:\/[^\/]/gi, function (x) {
+      return x.replace('https:/', 'https://');
+    });
+
     var cors_headers = withCORS({}, req);
     if (req.method === 'OPTIONS') {
       // Pre-flight request. Reply successfully:

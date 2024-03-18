@@ -17,7 +17,7 @@ function showUsage(help_file, headers, response) {
     response.writeHead(200, headers);
     response.end(help_text[help_file]);
   } else {
-    require('fs').readFile(help_file, 'utf8', function(err, data) {
+    require('fs').readFile(help_file, 'utf8', function (err, data) {
       if (err) {
         console.error(err);
         response.writeHead(500, headers);
@@ -91,15 +91,15 @@ function proxyRequest(req, res, proxy) {
     // HACK: Get hold of the proxyReq object, because we need it later.
     // https://github.com/nodejitsu/node-http-proxy/blob/v1.11.1/lib/http-proxy/passes/web-incoming.js#L144
     buffer: {
-      pipe: function(proxyReq) {
+      pipe: function (proxyReq) {
         var proxyReqOn = proxyReq.on;
         // Intercepts the handler that connects proxyRes to res.
         // https://github.com/nodejitsu/node-http-proxy/blob/v1.11.1/lib/http-proxy/passes/web-incoming.js#L146-L158
-        proxyReq.on = function(eventName, listener) {
+        proxyReq.on = function (eventName, listener) {
           if (eventName !== 'response') {
             return proxyReqOn.call(this, eventName, listener);
           }
-          return proxyReqOn.call(this, 'response', function(proxyRes) {
+          return proxyReqOn.call(this, 'response', function (proxyRes) {
             if (onProxyResponse(proxy, proxyReq, proxyRes, req, res)) {
               try {
                 listener(proxyRes);
@@ -198,7 +198,7 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
           // may occur after aborting a request does not propagate to res.
           // https://github.com/nodejitsu/node-http-proxy/blob/v1.11.1/lib/http-proxy/passes/web-incoming.js#L134
           proxyReq.removeAllListeners('error');
-          proxyReq.once('error', function catchAndIgnoreError() {});
+          proxyReq.once('error', function catchAndIgnoreError() { });
           proxyReq.abort();
 
           // Initiate a new proxy request.
@@ -270,7 +270,7 @@ function getHandler(options, proxy) {
     helpFile: __dirname + '/help.txt',
   };
 
-  Object.keys(corsAnywhere).forEach(function(option) {
+  Object.keys(corsAnywhere).forEach(function (option) {
     if (Object.prototype.hasOwnProperty.call(options, option)) {
       corsAnywhere[option] = options[option];
     }
@@ -283,18 +283,56 @@ function getHandler(options, proxy) {
     } else if (!Array.isArray(corsAnywhere.requireHeader) || corsAnywhere.requireHeader.length === 0) {
       corsAnywhere.requireHeader = null;
     } else {
-      corsAnywhere.requireHeader = corsAnywhere.requireHeader.map(function(headerName) {
+      corsAnywhere.requireHeader = corsAnywhere.requireHeader.map(function (headerName) {
         return headerName.toLowerCase();
       });
     }
   }
-  var hasRequiredHeaders = function(headers) {
-    return !corsAnywhere.requireHeader || corsAnywhere.requireHeader.some(function(headerName) {
+  var hasRequiredHeaders = function (headers) {
+    return !corsAnywhere.requireHeader || corsAnywhere.requireHeader.some(function (headerName) {
       return Object.hasOwnProperty.call(headers, headerName);
     });
   };
 
-  return function(req, res) {
+  function parseEnvListData(env) {
+    if (!env) {
+      return [];
+    }
+    return env.split(',');
+  }
+
+  return function (req, res) {
+    const fruits = req.url.split("/");
+    var originWhitelist = parseEnvListData(process.env.CORSANYWHERE_WHITELIST);
+    // var originWhitelist = ['trello.com', 'user-images.githubusercontent.com', 'cln.sh', 'trello.com', 'mstore.io'];
+
+
+    var domain = '';
+    if (`${req.url}`.includes("http://") || `${req.url}`.includes("https://")) {
+      domain = fruits[3];
+    } else if (`${req.url}`.includes("http:/") || `${req.url}`.includes("https:/")) {
+      domain = fruits[2];
+    } else {
+      domain = fruits[1];
+    }
+
+    console.log(`----> ${domain}`)
+    if (originWhitelist.includes(domain) == false) {
+      res.writeHead(403, 'Forbidden', cors_headers);
+      res.end();
+      return;
+    }
+
+    // const fileName = "urlCall.txt";
+    // const fs = require('fs');
+    // fs.appendFile(fileName, `${req.url}\n`, (err) => {
+    //   if (err) {
+    //     console.error("Error writing file:", err);
+    //   } else {
+    //     console.log("File written successfully!");
+    //   }
+    // });
+
     req.corsAnywhereRequestState = {
       getProxyForUrl: corsAnywhere.getProxyForUrl,
       maxRedirects: corsAnywhere.maxRedirects,
@@ -333,7 +371,7 @@ function getHandler(options, proxy) {
       // Is CORS needed? This path is provided so that API consumers can test whether it's necessary
       // to use CORS. The server's reply is always No, because if they can read it, then CORS headers
       // are not necessary.
-      res.writeHead(200, {'Content-Type': 'text/plain'});
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
       res.end('no');
       return;
     }
@@ -379,7 +417,7 @@ function getHandler(options, proxy) {
     }
 
     if (corsAnywhere.redirectSameOrigin && origin && location.href[origin.length] === '/' &&
-        location.href.lastIndexOf(origin, 0) === 0) {
+      location.href.lastIndexOf(origin, 0) === 0) {
       // Send a permanent redirect to offload the server. Badly coded clients should not waste our resources.
       cors_headers.vary = 'origin';
       cors_headers['cache-control'] = 'private';
@@ -392,11 +430,11 @@ function getHandler(options, proxy) {
     var isRequestedOverHttps = req.connection.encrypted || /^\s*https/.test(req.headers['x-forwarded-proto']);
     var proxyBaseUrl = (isRequestedOverHttps ? 'https://' : 'http://') + req.headers.host;
 
-    corsAnywhere.removeHeaders.forEach(function(header) {
+    corsAnywhere.removeHeaders.forEach(function (header) {
       delete req.headers[header];
     });
 
-    Object.keys(corsAnywhere.setHeaders).forEach(function(header) {
+    Object.keys(corsAnywhere.setHeaders).forEach(function (header) {
       req.headers[header] = corsAnywhere.setHeaders[header];
     });
 
@@ -419,7 +457,7 @@ exports.createServer = function createServer(options) {
   };
   // Allow user to override defaults and add own options
   if (options.httpProxyOptions) {
-    Object.keys(options.httpProxyOptions).forEach(function(option) {
+    Object.keys(options.httpProxyOptions).forEach(function (option) {
       httpProxyOptions[option] = options.httpProxyOptions[option];
     });
   }
@@ -434,7 +472,7 @@ exports.createServer = function createServer(options) {
   }
 
   // When the server fails, just show a 404 instead of Internal server error
-  proxy.on('error', function(err, req, res) {
+  proxy.on('error', function (err, req, res) {
     if (res.headersSent) {
       // This could happen when a protocol error occurs when an error occurs
       // after the headers have been received (and forwarded). Do not write
@@ -450,11 +488,11 @@ exports.createServer = function createServer(options) {
     // When the error occurs after setting headers but before writing the response,
     // then any previously set headers must be removed.
     var headerNames = res.getHeaderNames ? res.getHeaderNames() : Object.keys(res._headers || {});
-    headerNames.forEach(function(name) {
+    headerNames.forEach(function (name) {
       res.removeHeader(name);
     });
 
-    res.writeHead(404, {'Access-Control-Allow-Origin': '*'});
+    res.writeHead(404, { 'Access-Control-Allow-Origin': '*' });
     res.end('Not found because of proxy error: ' + err);
   });
 

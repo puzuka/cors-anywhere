@@ -1,9 +1,7 @@
 {
     "version": 2,
-    "builds": [
-        {
-            "src": "lib",
-            "main": "server.js"
-        }
-    ]
+    "build": {
+        "src": "lib",
+        "main": "server.js"
+    }
 }
